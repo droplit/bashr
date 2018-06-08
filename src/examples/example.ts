@@ -13,3 +13,7 @@ droplit.lazyRoute('ecosystem', './ecosystemRoute');
 
 droplit.lazyRoute('environment', './environmentRoute');
 droplit.lazyRoute('device', './deviceRoute');
+
+droplit.run(process.argv);
+
+console.log('done');

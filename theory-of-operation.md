@@ -153,3 +153,17 @@ app
 	- /topSellers
 	- /reserved
 - /book/reserved
+
+
+you can have option switches anywhere only without option values.
+option values cannot start with a dash or double dash (though they may be enclosed in quotes)
+namespaces, commands, and params cannot start with a dash or double dash
+
+invocation namespace namespace command param param --option --option optionParam
+invocation namespace --option namespace command param param --option
+
+## routing
+* use handlers are executed
+* commands are processed sequentially for the given route (or CLI root)
+* then routes are processed sequentially until there is a match
+* a match will cause the execution flow to drop into the router for that route

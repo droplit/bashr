@@ -1,6 +1,8 @@
 import { ParameterOptions, CommandHandler, CommandInput, CommandOutput } from './types';
 import { Route } from './Route';
 
+const debug = require('debug')('bashr');
+
 export interface CliOptions {
     caseSensitive?: boolean;
     enableRepl?: boolean;
@@ -34,7 +36,8 @@ export class CLI<TContext = any> extends Route {
     public run(argv?: string[]) {
         argv = argv || process.argv;
         // organize args
-        const pathAndParams: string[] = [];
+        const pathAndParams: string[] = argv.slice(2); // remove node/path and invocation
+        this._run(pathAndParams, {path: '', params: {}}, {log: console.log}, () => {});
     }
 
 }
