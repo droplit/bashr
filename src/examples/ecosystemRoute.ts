@@ -1,6 +1,6 @@
 import * as bashr from '../library';
 
-const route = new bashr.Route();
+const route = new bashr.Route('ecosystems');
 
 route.param('ecosystemId', {friendlyName: 'id', validationRegex: /\w{2,3}/});
 

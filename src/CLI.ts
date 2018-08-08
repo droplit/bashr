@@ -1,7 +1,8 @@
 import { ParameterOptions, CommandHandler, CommandInput, CommandOutput } from './types';
 import { Route } from './Route';
 
-const debug = require('debug')('bashr');
+import debug from 'debug';
+const log = debug('bashr:CLI');
 
 export interface CliOptions {
     caseSensitive?: boolean;
@@ -9,7 +10,6 @@ export interface CliOptions {
 }
 
 export class CLI<TContext = any> extends Route {
-
     private _invocation: string;
     private _options: CliOptions = { // must define defaults for all options or validation will not work
         caseSensitive: false,
@@ -17,7 +17,7 @@ export class CLI<TContext = any> extends Route {
     };
 
     constructor(invocation: string, options?: CliOptions) {
-        super();
+        super(invocation);
         this._invocation = invocation;
         // read in options, use defaults where undefined
         if (options !== undefined) {
@@ -33,11 +33,10 @@ export class CLI<TContext = any> extends Route {
         }
     }
 
-    public run(argv?: string[]) {
-        argv = argv || process.argv;
+    public run(argv = process.argv) {
+        log('Running CLI...');
         // organize args
         const pathAndParams: string[] = argv.slice(2); // remove node/path and invocation
-        this._run(pathAndParams, {path: '', params: {}}, {log: console.log}, () => {});
+        this._run(pathAndParams, { path: '', params: {} }, { log: console.log }, () => { });
     }
-
 }

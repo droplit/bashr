@@ -1,28 +1,36 @@
 {
-  "name": "bashr",
-  "version": "1.0.0",
-  "description": "Create stellar CLI applications",
-  "main": "dist/library.js",
-  "scripts": {
-    "build": "npm run tslint && tsc",
-    "watch": "npm run tslint && tsc --watch --preserveWatchOutput",
-    "clean": "rimraf dist",
-    "tslint": "tslint -c tslint.json -t stylish 'src/**/*.ts' --force"
-  },
-  "keywords": [
-    "CLI"
-  ],
-  "author": "Droplit, Inc.",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/debug": "0.0.30",
-    "@types/node": "^10.1.2",
-    "rimraf": "^2.6.2",
-    "source-map-support": "^0.5.6",
-    "tslint": "^5.10.0",
-    "typescript": "^2.8.3"
-  },
-  "dependencies": {
-    "debug": "^3.1.0"
-  }
+    "name": "bashr",
+    "version": "1.0.0",
+    "description": "Create stellar CLI applications",
+    "types": "dist/library.d.ts",
+    "main": "dist/library.js",
+    "scripts": {
+        "build": "npm run tslint && tsc --build",
+        "watch": "npm run tslint && tsc --build --watch --preserveWatchOutput",
+        "clean": "rimraf dist",
+        "tslint": "tslint -c tslint.json -t stylish 'src/**/*.ts' --force",
+        "pretest": "npm run build",
+        "test": "mocha -r ts-node/register -r source-map-support/register  test/*.ts"
+    },
+    "keywords": [
+        "CLI"
+    ],
+    "author": "Droplit, Inc.",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/chai": "^4.1.4",
+        "@types/mocha": "^5.2.5",
+        "@types/node": "^10.1.2",
+        "chai": "^4.1.2",
+        "mocha": "^5.2.0",
+        "rimraf": "^2.6.2",
+        "source-map-support": "^0.5.6",
+        "ts-node": "^7.0.0",
+        "tslint": "^5.10.0",
+        "typescript": "^3.0.1"
+    },
+    "dependencies": {
+        "@types/debug": "0.0.30",
+        "debug": "^3.1.0"
+    }
 }

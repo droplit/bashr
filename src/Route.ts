@@ -1,6 +1,10 @@
+import util from 'util';
 import { ParameterOptions, OptionOptions, CommandHandler, CommandInput, CommandOutput } from './types';
 
-const debug = require('debug')('bashr');
+import debug from 'debug';
+import { IDebugger } from 'debug';
+
+const log = debug('bashr');
 
 interface RouteInfo {
     path: string;
@@ -25,20 +29,24 @@ export interface PathToken {
 
 export interface EvalResult {
     match: boolean;
-    params?: {[name: string]: any};
+    params?: { [name: string]: any };
 }
 
 interface LazyLoader { (): Route; }
 
 export class Route<TContext = any> {
+    protected log: IDebugger;
 
+    private name: string;
     private routes: RouteInfo[] = [];
     private commands: CommandInfo[] = [];
     private useHandlers: CommandHandler<TContext>[] = [];
-    private params: {[name: string]: ParameterOptions} = {};
-    private options: {[name: string]: OptionOptions} = {};
+    private params: { [name: string]: ParameterOptions } = {};
+    private options: { [name: string]: OptionOptions } = {};
 
-    constructor() {
+    constructor(name: string) {
+        this.name = name;
+        this.log = debug(`bashr:route-${name}`);
     }
 
     public param(name: string, options: ParameterOptions) {
@@ -51,20 +59,20 @@ export class Route<TContext = any> {
     }
 
     public use(...handler: CommandHandler<TContext>[]): Route {
-        debug(`adding use handler`);
+        this.log(`adding use handler`);
         this.useHandlers.push(...handler);
         return this;
     }
 
     public command(path: string, ...handler: CommandHandler<TContext>[]): this {
-        debug(`adding command: ${path}`);
-        this.commands.push({path, commandHandlers: handler});
+        this.log(`adding command: ${path}`);
+        this.commands.push({ path, commandHandlers: handler });
         return this;
     }
 
     public route(path: string, route?: Route): Route {
-        debug(`adding route: ${path}`);
-        route = route || new Route();
+        route = route || new Route(path);
+        this.log(`adding route: ${path}`);
         this.routes.push({
             path,
             route
@@ -77,13 +85,13 @@ export class Route<TContext = any> {
     public lazyRoute(path: string, loaderOrPath: (() => Route) | string): any {
         return new Promise((resolve, reject) => {
             let loader: LazyLoader | undefined;
-            if (typeof(loaderOrPath) === 'function') {
+            if (typeof (loaderOrPath) === 'function') {
                 loader = () => {
                     const route = loaderOrPath();
                     resolve(route);
                     return route;
                 };
-            } else if (typeof(loaderOrPath) === 'string') {
+            } else if (typeof (loaderOrPath) === 'string') {
                 loader = () => {
                     const route = require(loaderOrPath);
                     resolve(route);
@@ -114,8 +122,8 @@ export class Route<TContext = any> {
     }
 
     protected static evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
-        const result: EvalResult = {match: false};
-        const params: {[name: string]: string} = {};
+        const result: EvalResult = { match: false };
+        const params: { [name: string]: string } = {};
         // extract options and option params
         for (const i in pathTokens) {
             const pathToken = pathTokens[i];
@@ -149,7 +157,7 @@ export class Route<TContext = any> {
 
     private asyncEach<T>(items: T[], operation: (item: T, callback: () => void) => void, done?: () => void) {
         if (items.length > 0) {
-            this._asyncEach(items, 0, operation, done ? done : () => {});
+            this._asyncEach(items, 0, operation, done ? done : () => { });
         } else {
             if (done) done();
         }
@@ -168,28 +176,27 @@ export class Route<TContext = any> {
     protected _run(pathAndParams: string[], input: CommandInput, output: CommandOutput, next: () => void) {
         const originalInputParams = input.params;
         // run use handlers
-        debug('running use handlers');
+        this.log('running use handlers');
         this.asyncEach(this.useHandlers, (handler, callback) => {
             handler(input, output, callback);
         }, () => {
-            debug('processing commands', this.commands);
             this.processCommands(pathAndParams, input, output, originalInputParams, () => {
-                debug('processing routes');
                 this.processRoutes(pathAndParams, input, output, originalInputParams, next);
             });
         });
     }
 
-    protected processCommands(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: {[name: string]: any}, next: () => void) {
+    protected processCommands(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: { [name: string]: any }, next: () => void) {
         // process commands
-        debug('processing commands', this.commands);
-        if (this.commands.length === 0) if (next) next();
+        this.log('processing commands', util.inspect(this.commands, false, 1));
+        if (this.commands.length === 0 && !!next) return next();
         this.asyncEach(this.commands, (commandInfo, nextCommand) => {
-            debug(`processing ${commandInfo.path} command`);
+            this.log(`processing ${commandInfo.path} command`);
             const commandTokens = Route.tokenizePath(commandInfo.path);
             const evalResult = Route.evalPath(pathAndParams, commandTokens);
+            this.log(pathAndParams, commandTokens, evalResult);
             if (evalResult.match && commandTokens.length === pathAndParams.length) {
-                debug(`running ${commandInfo.path} command`);
+                this.log(`running ${commandInfo.path} command`);
                 if (commandInfo.commandHandlers.length === 0) {
                     nextCommand();
                 } else {
@@ -204,8 +211,9 @@ export class Route<TContext = any> {
         }, next);
     }
 
-    protected processRoutes(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: {[name: string]: any}, next: () => void) {
+    protected processRoutes(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: { [name: string]: any }, next: () => void) {
         // process routes
+        this.log('processing routes', util.inspect(this.routes, false, 1));
         this.asyncEach(this.routes, (routeInfo, callback) => {
             const routeTokens = Route.tokenizePath(routeInfo.path);
             const evalResult = Route.evalPath(pathAndParams, routeTokens);
