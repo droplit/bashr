@@ -18,8 +18,8 @@ interface CommandInfo {
 }
 
 export enum PathTokenType {
-    route,
-    param
+    route = 'route',
+    param = 'param',
 }
 
 export interface PathToken {
@@ -127,7 +127,7 @@ export class Route<TContext = any> {
         // extract options and option params
         for (const i in pathTokens) {
             const pathToken = pathTokens[i];
-            if (pathToken.type === PathTokenType.param || inputArgs[i] === pathToken.name) {
+            if (pathToken.type === PathTokenType.param || inputArgs[i] === pathToken.name || pathToken.name === '*') {
                 result.match = true;
                 if (pathToken.type === PathTokenType.param) {
                     params[pathToken.name] = inputArgs[i];
@@ -180,6 +180,8 @@ export class Route<TContext = any> {
         this.asyncEach(this.useHandlers, (handler, callback) => {
             handler(input, output, callback);
         }, () => {
+            log(pathAndParams, input);
+            // Process commands before routes since routes may be lazy loaded.
             this.processCommands(pathAndParams, input, output, originalInputParams, () => {
                 this.processRoutes(pathAndParams, input, output, originalInputParams, next);
             });
@@ -195,7 +197,7 @@ export class Route<TContext = any> {
             const commandTokens = Route.tokenizePath(commandInfo.path);
             const evalResult = Route.evalPath(pathAndParams, commandTokens);
             this.log(pathAndParams, commandTokens, evalResult);
-            if (evalResult.match && commandTokens.length === pathAndParams.length) {
+            if (evalResult.match) {
                 this.log(`running ${commandInfo.path} command`);
                 if (commandInfo.commandHandlers.length === 0) {
                     nextCommand();

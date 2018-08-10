@@ -1,12 +1,26 @@
 # Bashr
 
+Components to a Bashr cli command
+
+* Path
+    * Hardcoded string
+    * 
+* Options (Flags)
+    * Flag name prefixed with `--`
+        * camelCase, PascalCase, kebab-case, snake_case
+    * Alias prefixed with `-`
+        * Always converted to lowercase
+    * Optional
+    * Optional value
+
+
+
 ## Theory of Operation
 
 Create command line interface applications using an express-like router architecture to map commands.
 
 * Plugin extensibility for help
-* Plugin extensibility for param parsing
-* framework for 
+* Plugin extensibility for option parsing
 * Bashr itself does not have a CLI
 
 
