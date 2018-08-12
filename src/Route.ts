@@ -20,6 +20,7 @@ interface CommandInfo {
 export enum PathTokenType {
     route = 'route',
     param = 'param',
+    optional = 'optional',
 }
 
 export interface PathToken {
@@ -122,21 +123,28 @@ export class Route<TContext = any> {
     }
 
     protected static evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
-        const result: EvalResult = { match: false };
-        const params: { [name: string]: string } = {};
+        const result: EvalResult = { match: true };
         // extract options and option params
-        for (const i in pathTokens) {
-            const pathToken = pathTokens[i];
-            if (pathToken.type === PathTokenType.param || inputArgs[i] === pathToken.name || pathToken.name === '*') {
+        pathTokens.map((value, index, array) => {
+            if (value.name === '*') {
                 result.match = true;
-                if (pathToken.type === PathTokenType.param) {
-                    params[pathToken.name] = inputArgs[i];
-                }
-            } else {
                 return result;
             }
-        }
-        result.params = params;
+            switch (value.type) {
+                case PathTokenType.route:
+                    if (inputArgs[index] !== value.name) {
+                        result.match = false;
+                        return result;
+                    }
+                    break;
+                case PathTokenType.param:
+                    result.params = result.params || {};
+                    result.params[value.name] = inputArgs[index];
+                    break;
+                case PathTokenType.optional:
+                    break;
+            }
+        });
         return result;
     }
 

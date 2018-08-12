@@ -4,7 +4,8 @@ Components to a Bashr cli command
 
 * Path
     * Hardcoded string
-    * 
+    * Params    
+        * Optional
 * Options (Flags)
     * Flag name prefixed with `--`
         * camelCase, PascalCase, kebab-case, snake_case
@@ -95,6 +96,17 @@ cli('device :id call :selector :[value]'); // call command with optional "value"
 cli('device :id call :selector [value...]'); // call command with optional any number of fields
 
 `droplit device :deviceId get :selector --refresh=true`
+
+
+Options input
+
+```shell
+--param value
+-p value
+--paramName value
+--param-name value
+-pn value
+```
 
 droplit
 

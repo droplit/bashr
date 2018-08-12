@@ -84,6 +84,85 @@ describe('CLI command and routes', function () {
     });
 });
 
+describe('Params', function () {
+    it('Single param', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            expect(input.params['param']).to.equal('world');
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello :param', handler);
+        cli.run(['', '', 'hello', 'world'])
+    });
+
+    it('Two params', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            expect(input.params['param1']).to.equal('foo');
+            expect(input.params['param2']).to.equal('bar');
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello :param1 :param2', handler);
+        cli.run(['', '', 'hello', 'foo', 'bar'])
+    });
+    it('Param with route', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            expect(input.params['myParam']).to.equal('world');
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        const route = cli.route('myRoute');
+        route.command('hello :myParam', handler);
+        cli.run(['', '', 'myRoute', 'hello', 'world'])
+    });
+    it('Route on command with param', function (done) {
+        const handlerA: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const handlerB: bashr.CommandHandler = (input, output) => {
+            done('Commands are matched before routes');
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello :myParam', handlerA);
+        const route = cli.route('hello');
+        route.command('world', handlerB);
+        cli.run(['', '', 'hello', 'world'])
+    });
+    it('Route on command with param', function (done) {
+        const handlerA: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const handlerB: bashr.CommandHandler = (input, output) => {
+            done('Commands are matched before routes');
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello :myParam', handlerA);
+        const route = cli.route('hello');
+        route.command('world', handlerB);
+        cli.run(['', '', 'hello', 'world'])
+    });
+    it('Command on param', function (done) {
+        const handlerA: bashr.CommandHandler = (input, output) => {
+            expect(input.params['myParam']).to.equal('myValue');
+            done();
+        };
+
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello :myParam world', handlerA);
+        cli.run(['', '', 'hello', 'myValue', 'world'])
+    });
+    it('Command on param', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+
+        const cli = new bashr.CLI('bashr');
+        cli.command('*', defaultHandler);
+        cli.command('hello :myParam world', () => done('Should not match'));
+        cli.run(['', '', 'hello', 'myValue'])
+    });
+});
+
 // describe('CLI command with params', function () { 
 //     it('Run CLI with params', done => {
 //         const cli = new bashr.CLI('myCLI');
