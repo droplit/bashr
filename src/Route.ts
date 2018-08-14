@@ -110,7 +110,7 @@ export class Route<TContext = any> {
     }
 
     protected static tokenizePath(path: string): PathToken[] {
-        const pathTokens: PathToken[] = [];
+        path = path.trim().replace(/\s{2,}/g, ' '); // Remove duplicate spaces
         return path.split(' ').map((token) => {
             if (token.startsWith('-')) throw new Error('path token cannot start with dash(-)');
             const isParam = token.startsWith(':');
@@ -122,7 +122,7 @@ export class Route<TContext = any> {
         });
     }
 
-    protected static evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
+    protected evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
         const result: EvalResult = { match: true };
         // extract options and option params
         pathTokens.map((value, index, array) => {
@@ -130,16 +130,32 @@ export class Route<TContext = any> {
                 result.match = true;
                 return result;
             }
+            const inputArg = inputArgs[index];
             switch (value.type) {
                 case PathTokenType.route:
-                    if (inputArgs[index] !== value.name) {
+                    if (inputArg !== value.name) {
                         result.match = false;
                         return result;
                     }
                     break;
                 case PathTokenType.param:
+                    if (this.params[value.name]) {
+                        const validation = this.params[value.name];
+                        if (validation.validationRegex) {
+                            if (!RegExp(validation.validationRegex).test(inputArg)) {
+                                result.match = false;
+                                return result;
+                            }
+                        }
+                        if (validation.validator) {
+                            if (validation.validator(inputArg) !== true) {
+                                result.match = false;
+                                return result;
+                            }
+                        }
+                    }
                     result.params = result.params || {};
-                    result.params[value.name] = inputArgs[index];
+                    result.params[value.name] = inputArg;
                     break;
                 case PathTokenType.optional:
                     break;
@@ -203,7 +219,7 @@ export class Route<TContext = any> {
         this.asyncEach(this.commands, (commandInfo, nextCommand) => {
             this.log(`processing ${commandInfo.path} command`);
             const commandTokens = Route.tokenizePath(commandInfo.path);
-            const evalResult = Route.evalPath(pathAndParams, commandTokens);
+            const evalResult = this.evalPath(pathAndParams, commandTokens);
             this.log(pathAndParams, commandTokens, evalResult);
             if (evalResult.match) {
                 this.log(`running ${commandInfo.path} command`);
@@ -226,7 +242,7 @@ export class Route<TContext = any> {
         this.log('processing routes', util.inspect(this.routes, false, 1));
         this.asyncEach(this.routes, (routeInfo, callback) => {
             const routeTokens = Route.tokenizePath(routeInfo.path);
-            const evalResult = Route.evalPath(pathAndParams, routeTokens);
+            const evalResult = this.evalPath(pathAndParams, routeTokens);
             if (evalResult.match) {
                 // path matches
                 // trim route

@@ -92,7 +92,15 @@ describe('Params', function () {
         cli.command('hello :param', handler);
         cli.run(['', '', 'hello', 'world'])
     });
-
+    it('Single param (Extra space)', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            expect(input.params['param']).to.equal('world');
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello    :param   ', handler);
+        cli.run(['', '', 'hello', 'world'])
+    });
     it('Two params', function (done) {
         const handler: bashr.CommandHandler = (input, output) => {
             expect(input.params['param1']).to.equal('foo');
@@ -144,7 +152,61 @@ describe('Params', function () {
         cli.command('hello :myParam world', () => done('Should not match'));
         cli.run(['', '', 'hello', 'myValue'])
     });
+    it('Single param with validation', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done('"1234" should pass validation for regex /^[0-9]*$/');
+        };
+        const handler: bashr.CommandHandler = (input, output) => {
+            expect(input.params['myParam']).to.equal('1234');
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.param('myParam', { validationRegex: /^[0-9]*$/ }); // Only numbers
+        cli.command('hello :myParam', handler);
+        cli.command('*', defaultHandler);
+        cli.run(['', '', 'hello', '1234'])
+    });
+    it('Single param with validation (fail to pass)', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const handler: bashr.CommandHandler = (input, output) => {
+            done('"world" should not pass validation for regex /^[0-9]*$/');
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.param('myParam', { validationRegex: /^[0-9]*$/ }); // Only numbers
+        cli.command('hello :myParam', handler);
+        cli.command('*', defaultHandler);
+        cli.run(['', '', 'hello', 'world'])
+    });
+    it('Single param with custom validator', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done('"world" should pass custom validator');
+        };
+        const handler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.param('myParam', { validator: (value) => value === 'world' }); // Only allow 'world'
+        cli.command('hello :myParam', handler);
+        cli.command('*', defaultHandler);
+        cli.run(['', '', 'hello', 'world'])
+    });
+    it('Single param with custom validator (fail to pass)', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const handler: bashr.CommandHandler = (input, output) => {
+            done('"foo" should not pass custom validator');
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.param('myParam', { validator: (value) => value === 'world' }); // Only allow 'world'
+        cli.command('hello :myParam', handler);
+        cli.command('*', defaultHandler);
+        cli.run(['', '', 'hello', 'foo'])
+    });
 });
+
 
 // describe('CLI command with params', function () { 
 //     it('Run CLI with params', done => {
