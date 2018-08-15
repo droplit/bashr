@@ -103,6 +103,25 @@ describe('CLI command and routes', function () {
         route.command('*', handler2);
         cli.run(['', '', 'myRoute']);
     });
+    it('Unused route', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const cli = new bashr.CLI('myCLI');
+        const unused = cli.route('otherRoute');
+        const route = cli.route('myRoute');
+        route.command('hello', handler);
+        cli.run(['', '', 'myRoute', 'hello']);
+    });
+    it('Route name with *', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const cli = new bashr.CLI('myCLI');
+        const route = cli.route('myRoute *');
+        route.command('hello', handler);
+        cli.run(['', '', 'myRoute', 'anything', 'hello']);
+    });
 });
 
 describe('Params', function () {
@@ -123,6 +142,16 @@ describe('Params', function () {
         const cli = new bashr.CLI('bashr');
         cli.command('hello    :param   ', handler);
         cli.run(['', '', 'hello', 'world'])
+    });
+    it('Single param in route', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            expect(input.params['param']).to.equal('world');
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        const route = cli.route('myRoute :param');
+        route.command('hello', handler);
+        cli.run(['', '', 'myRoute', 'world', 'hello'])
     });
     it('Two params', function (done) {
         const handler: bashr.CommandHandler = (input, output) => {
