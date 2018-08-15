@@ -1,3 +1,5 @@
+import { spawnSync } from 'child_process';
+import * as path from 'path';
 import 'mocha';
 import { expect } from 'chai';
 import * as bashr from '../';
@@ -58,6 +60,14 @@ describe('CLI command and routes', function () {
         cli.command('*', defaultHandler);
         cli.run(['', '', 'hello', 'world'])
     });
+    it('Input "hello world foo" should match command "*"', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('*', defaultHandler);
+        cli.run(['', '', 'hello', 'world', 'foo'])
+    });
     it('Input "myRoute hello" should match {route: "myRoute", command: "*"}', function (done) {
         const defaultHandler: bashr.CommandHandler = (input, output) => {
             done();
@@ -66,6 +76,19 @@ describe('CLI command and routes', function () {
         const route = cli.route('myRoute');
         route.command('*', defaultHandler);
         cli.run(['', '', 'myRoute', 'hello'])
+    });
+    it('Input "myRoute hello world" should not match {route: "myRoute", command: "hello"}', function (done) {
+        const handler: bashr.CommandHandler = (input, output) => {
+            done('Command should not match command');
+        };
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const cli = new bashr.CLI('myCLI');
+        const route = cli.route('myRoute');
+        route.command('hello', handler);
+        route.command('*', defaultHandler);
+        cli.run(['', '', 'myRoute', 'hello', 'world'])
     });
     it('Input "myRoute" should match command "myRoute" before {route: "myRoute", command: "*"}', function (done) {
         const handler: bashr.CommandHandler = (input, output) => {
@@ -208,13 +231,24 @@ describe('Params', function () {
 });
 
 
-// describe('CLI command with params', function () { 
-//     it('Run CLI with params', done => {
-//         const cli = new bashr.CLI('myCLI');
-//         cli.command('hello :my-param', (input, output, callback) => {
-//             console.log(input.params)
-//             done();
-//         });
-//         cli.run(['', '', 'hello', '--myParamz', 'world'])        
-//     });
-// });
+describe('Child process test', function () {
+    this.slow(500);
+    it('Run food cli "hello"', done => {
+        const command = spawnSync(path.join(__dirname, './food/bin/food'), ['hello']);
+        const output = command.stdout.toString();
+        expect(output).to.equal('world');
+        done();
+    });
+    it('Run food cli "fruit banana peel"', done => {
+        const command = spawnSync(path.join(__dirname, './food/bin/food'), ['fruit', 'banana', 'peel']);
+        const output = command.stdout.toString();
+        expect(output).to.equal('peeled!');
+        done();
+    });
+    it('Food cli default "fruit banana peel foo"', done => {
+        const command = spawnSync(path.join(__dirname, './food/bin/food'), ['fruit', 'banana', 'peel', 'foo']);
+        const output = command.stdout.toString();
+        expect(output).to.equal('default handler');
+        done();
+    });
+});

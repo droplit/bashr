@@ -21,6 +21,7 @@ export enum PathTokenType {
     route = 'route',
     param = 'param',
     optional = 'optional',
+    multipleOptional = 'multipleOptional'
 }
 
 export interface PathToken {
@@ -30,7 +31,7 @@ export interface PathToken {
 
 export interface EvalResult {
     match: boolean;
-    params?: { [name: string]: any };
+    params: { [name: string]: any };
 }
 
 interface LazyLoader { (): Route; }
@@ -41,6 +42,7 @@ export class Route<TContext = any> {
     private name: string;
     private routes: RouteInfo[] = [];
     private commands: CommandInfo[] = [];
+    private _default?: CommandInfo;
     private useHandlers: CommandHandler<TContext>[] = [];
     private params: { [name: string]: ParameterOptions } = {};
     private options: { [name: string]: OptionOptions } = {};
@@ -67,7 +69,14 @@ export class Route<TContext = any> {
 
     public command(path: string, ...handler: CommandHandler<TContext>[]): this {
         this.log(`adding command: ${path}`);
+        if (path === '*') return this.deafult(...handler);
         this.commands.push({ path, commandHandlers: handler });
+        return this;
+    }
+
+    public deafult(...handler: CommandHandler<TContext>[]): this {
+        this.log(`adding default`);
+        this._default = { path: '*', commandHandlers: handler };
         return this;
     }
 
@@ -109,7 +118,7 @@ export class Route<TContext = any> {
         });
     }
 
-    protected static tokenizePath(path: string): PathToken[] {
+    private static tokenizePath(path: string): PathToken[] {
         path = path.trim().replace(/\s{2,}/g, ' '); // Remove duplicate spaces
         return path.split(' ').map((token) => {
             if (token.startsWith('-')) throw new Error('path token cannot start with dash(-)');
@@ -122,64 +131,76 @@ export class Route<TContext = any> {
         });
     }
 
-    protected evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
-        const result: EvalResult = { match: true };
+    private evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
+        const result: EvalResult = { match: false, params: {} };
         // extract options and option params
-        pathTokens.map((value, index, array) => {
-            if (value.name === '*') {
-                result.match = true;
-                return result;
-            }
+        this.log(inputArgs, pathTokens);
+        // Only validate routes, params, and optional params
+        for (let index = 0; index < inputArgs.length; index++) {
             const inputArg = inputArgs[index];
-            switch (value.type) {
-                case PathTokenType.route:
-                    if (inputArg !== value.name) {
-                        result.match = false;
-                        return result;
-                    }
-                    break;
-                case PathTokenType.param:
-                    if (this.params[value.name]) {
-                        const validation = this.params[value.name];
-                        if (validation.validationRegex) {
-                            if (!RegExp(validation.validationRegex).test(inputArg)) {
-                                result.match = false;
-                                return result;
-                            }
-                        }
-                        if (validation.validator) {
-                            if (validation.validator(inputArg) !== true) {
-                                result.match = false;
-                                return result;
-                            }
-                        }
-                    }
-                    result.params = result.params || {};
-                    result.params[value.name] = inputArg;
-                    break;
-                case PathTokenType.optional:
-                    break;
-            }
-        });
+            if (this.evalPathToken(pathTokens[index], inputArg, result.params) === false)
+                return result;
+            if (pathTokens[index].name === '*')
+                result.match = true;
+        }
+        if (inputArgs.length < pathTokens.length)
+            return result; // Too few arguments passed (check after validating args incase of "*" parameter)
+
+        result.match = true;
         return result;
+
     }
 
-    private static concatObject(A: any, B: any): Object {
+    private evalPathToken(pathToken: PathToken, inputArg: string, params: { [name: string]: any }): boolean {
+        if (!pathToken)
+            return false;
+        if (pathToken.name === '*')
+            return true;
+        if (!inputArg && pathToken.type !== PathTokenType.optional)
+            return false;
+        if (!inputArg && pathToken.type !== PathTokenType.multipleOptional)
+            return false;
+
+        switch (pathToken.type) {
+            case PathTokenType.route:
+                if (inputArg !== pathToken.name)
+                    return false;
+                break;
+            case PathTokenType.optional:
+            case PathTokenType.param:
+                this.log(this.validateParam(pathToken.name, inputArg));
+                if (this.validateParam(pathToken.name, inputArg) === false)
+                    return false;
+
+                params[pathToken.name] = inputArg;
+                break;
+        }
+        return true;
+    }
+
+    private validateParam(paramName: string, inputArg: string): boolean {
+        const validation = this.params[paramName];
+        if (validation) {
+            if (validation.validationRegex) {
+                if (!RegExp(validation.validationRegex).test(inputArg))
+                    return false;
+            }
+            if (validation.validator) {
+                if (validation.validator(inputArg) !== true)
+                    return false;
+            }
+            return true;
+        } return true;
+    }
+
+    protected static concatObject(A: any, B: any): Object {
         for (const key in B) {
             A[key] = B[key];
         }
         return A;
     }
 
-    private invokeHandler(handler: CommandHandler, input: CommandInput, output: CommandOutput): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
-            handler(input, output, () => {
-                resolve(true);
-            });
-        });
-    }
-
-    private asyncEach<T>(items: T[], operation: (item: T, callback: () => void) => void, done?: () => void) {
+    protected asyncEach<T>(items: T[], operation: (item: T, callback: () => void) => void, done?: () => void) {
         if (items.length > 0) {
             this._asyncEach(items, 0, operation, done ? done : () => { });
         } else {
@@ -187,7 +208,7 @@ export class Route<TContext = any> {
         }
     }
 
-    private _asyncEach<T>(items: T[], index: number, operation: (item: T, callback: () => void) => void, done: () => void) {
+    protected _asyncEach<T>(items: T[], index: number, operation: (item: T, callback: () => void) => void, done: () => void) {
         operation(items[index], () => {
             if (index + 1 < items.length) {
                 this._asyncEach(items, index + 1, operation, done);
@@ -207,7 +228,9 @@ export class Route<TContext = any> {
             log(pathAndParams, input);
             // Process commands before routes since routes may be lazy loaded.
             this.processCommands(pathAndParams, input, output, originalInputParams, () => {
-                this.processRoutes(pathAndParams, input, output, originalInputParams, next);
+                this.processRoutes(pathAndParams, input, output, originalInputParams, () => {
+                    this.processDefault(pathAndParams, input, output, originalInputParams, next);
+                });
             });
         });
     }
@@ -217,23 +240,7 @@ export class Route<TContext = any> {
         this.log('processing commands', util.inspect(this.commands, false, 1));
         if (this.commands.length === 0 && !!next) return next();
         this.asyncEach(this.commands, (commandInfo, nextCommand) => {
-            this.log(`processing ${commandInfo.path} command`);
-            const commandTokens = Route.tokenizePath(commandInfo.path);
-            const evalResult = this.evalPath(pathAndParams, commandTokens);
-            this.log(pathAndParams, commandTokens, evalResult);
-            if (evalResult.match) {
-                this.log(`running ${commandInfo.path} command`);
-                if (commandInfo.commandHandlers.length === 0) {
-                    nextCommand();
-                } else {
-                    this.asyncEach(commandInfo.commandHandlers, (handler, callback) => {
-                        input.params = Route.concatObject(originalInputParams, evalResult.params);
-                        handler(input, output, callback);
-                    }, nextCommand);
-                }
-            } else {
-                nextCommand();
-            }
+            this.processCommand(pathAndParams, input, output, commandInfo, originalInputParams, nextCommand);
         }, next);
     }
 
@@ -242,7 +249,7 @@ export class Route<TContext = any> {
         this.log('processing routes', util.inspect(this.routes, false, 1));
         this.asyncEach(this.routes, (routeInfo, callback) => {
             const routeTokens = Route.tokenizePath(routeInfo.path);
-            const evalResult = this.evalPath(pathAndParams, routeTokens);
+            const evalResult = this.evalPath(pathAndParams.slice(0, routeTokens.length), routeTokens);
             if (evalResult.match) {
                 // path matches
                 // trim route
@@ -251,8 +258,38 @@ export class Route<TContext = any> {
                     routeInfo.route._run(remainingParams, input, output, callback);
                 } else if (routeInfo.lazyLoader !== undefined) {
                     routeInfo.lazyLoader()._run(remainingParams, input, output, callback);
+                } else {
+                    callback();
                 }
+            } else {
+                callback();
             }
         }, next);
+    }
+
+    protected processDefault(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: { [name: string]: any }, next: () => void) {
+        this.log('processing default');
+        if (!this._default) return next();
+        this.processCommand(pathAndParams, input, output, this._default, originalInputParams, next);
+    }
+
+    protected processCommand(pathAndParams: string[], input: CommandInput, output: CommandOutput, commandInfo: CommandInfo, originalInputParams: { [name: string]: any }, next: () => void) {
+        this.log(`processing ${commandInfo.path} command`);
+        const commandTokens = Route.tokenizePath(commandInfo.path);
+        const evalResult = this.evalPath(pathAndParams, commandTokens);
+        this.log(pathAndParams, commandTokens, evalResult);
+        if (evalResult.match) {
+            this.log(`running ${commandInfo.path} command`);
+            if (commandInfo.commandHandlers.length === 0) {
+                next();
+            } else {
+                this.asyncEach(commandInfo.commandHandlers, (handler, callback) => {
+                    input.params = Route.concatObject(originalInputParams, evalResult.params);
+                    handler(input, output, callback);
+                }, next);
+            }
+        } else {
+            next();
+        }
     }
 }
