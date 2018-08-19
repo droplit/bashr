@@ -112,7 +112,6 @@ export class Route<TContext = any> {
             }
             this.routes.push({
                 path,
-                // pathTokens: Route.tokenizeRoutePath(path),
                 lazyLoader: loader
             });
         });
@@ -194,10 +193,7 @@ export class Route<TContext = any> {
     }
 
     protected static concatObject(A: any, B: any): Object {
-        for (const key in B) {
-            A[key] = B[key];
-        }
-        return A;
+        return { ...A, ...B };
     }
 
     protected asyncEach<T>(items: T[], operation: (item: T, callback: () => void) => void, done?: () => void) {
@@ -252,6 +248,7 @@ export class Route<TContext = any> {
             const evalResult = this.evalPath(pathAndParams.slice(0, routeTokens.length), routeTokens);
             if (evalResult.match) {
                 // path matches
+                input.params = Route.concatObject(originalInputParams, evalResult.params); // Merge params
                 // trim route
                 const remainingParams = pathAndParams.slice(routeTokens.length);
                 if (routeInfo.route) {
