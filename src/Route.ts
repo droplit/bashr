@@ -55,8 +55,8 @@ export class Route<TContext = any> {
     private options: { [name: string]: OptionOptions } = {};
 
     constructor(name: string) {
-        this.name = name;
-        this.log = debug(`bashr:route-${name}`);
+        this.name = name.replace(' ', '_').replace('*', '⋆');
+        this.log = debug(`bashr:route-${this.name}`);
     }
 
     public param(name: string, options: ParameterOptions) {
@@ -175,7 +175,6 @@ export class Route<TContext = any> {
                 break;
             case PathTokenType.optional:
             case PathTokenType.param:
-                this.log(this.validateParam(pathToken.name, inputArg));
                 if (this.validateParam(pathToken.name, inputArg) === false)
                     return false;
 
