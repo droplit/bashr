@@ -9,7 +9,10 @@ const log = debug('bashr');
 interface RouteInfo {
     path: string;
     route?: Route;
-    lazyLoader?: LazyLoader;
+    lazyLoader?: {
+        loader: LazyLoader,
+        path?: string
+    };
 }
 
 interface CommandInfo {
@@ -34,7 +37,11 @@ export interface EvalResult {
     params: { [name: string]: any };
 }
 
-interface LazyLoader { (): Route; }
+interface RouteModule {
+    route: Route;
+}
+
+export interface LazyLoader { (): Promise<RouteModule>; }
 
 export class Route<TContext = any> {
     protected log: IDebugger;
@@ -69,12 +76,12 @@ export class Route<TContext = any> {
 
     public command(path: string, ...handler: CommandHandler<TContext>[]): this {
         this.log(`adding command: ${path}`);
-        if (path === '*') return this.deafult(...handler);
+        if (path === '*') return this.default(...handler);
         this.commands.push({ path, commandHandlers: handler });
         return this;
     }
 
-    public deafult(...handler: CommandHandler<TContext>[]): this {
+    public default(...handler: CommandHandler<TContext>[]): this {
         this.log(`adding default`);
         this._default = { path: '*', commandHandlers: handler };
         return this;
@@ -90,31 +97,32 @@ export class Route<TContext = any> {
         return route;
     }
 
-    public lazyRoute(path: string, loader: (() => Route)): Promise<Route>;
-    public lazyRoute(path: string, requirePath: string): Promise<Route>;
-    public lazyRoute(path: string, loaderOrPath: (() => Route) | string): any {
-        return new Promise((resolve, reject) => {
-            let loader: LazyLoader | undefined;
-            if (typeof (loaderOrPath) === 'function') {
-                loader = () => {
-                    const route = loaderOrPath();
-                    resolve(route);
-                    return route;
-                };
-            } else if (typeof (loaderOrPath) === 'string') {
-                loader = () => {
-                    const route = require(loaderOrPath);
-                    resolve(route);
-                    return route;
-                };
-            } else {
-                reject(new Error('Must specify a loader function or a path string'));
-            }
+    public lazyRoute(path: string, loader: LazyLoader): void;
+    public lazyRoute(path: string, requirePath: string): void;
+    public lazyRoute(path: string, loaderOrPath: LazyLoader | string): void {
+        this.log(`adding lazyRoute: ${path}`);
+        if (loaderOrPath instanceof Function) {
+            const loader = loaderOrPath;
             this.routes.push({
                 path,
-                lazyLoader: loader
+                lazyLoader: {
+                    loader
+                }
             });
-        });
+        } else if (typeof (loaderOrPath) === 'string') {
+            const loader = () => import(loaderOrPath);
+            const loaderPath = loaderOrPath;
+            this.routes.push({
+                path,
+                lazyLoader: {
+                    loader,
+                    path: loaderPath
+                }
+            });
+        } else {
+            throw new Error('Must specify a loader function or a path string');
+        }
+
     }
 
     private static tokenizePath(path: string): PathToken[] {
@@ -244,22 +252,33 @@ export class Route<TContext = any> {
         // process routes
         this.log('processing routes', util.inspect(this.routes, false, 1));
         this.asyncEach(this.routes, (routeInfo, callback) => {
-            const routeTokens = Route.tokenizePath(routeInfo.path);
-            const evalResult = this.evalPath(pathAndParams.slice(0, routeTokens.length), routeTokens);
-            if (evalResult.match) {
-                // path matches
-                input.params = Route.concatObject(originalInputParams, evalResult.params); // Merge params
-                // trim route
-                const remainingParams = pathAndParams.slice(routeTokens.length);
-                if (routeInfo.route) {
-                    routeInfo.route._run(remainingParams, input, output, callback);
-                } else if (routeInfo.lazyLoader !== undefined) {
-                    routeInfo.lazyLoader()._run(remainingParams, input, output, callback);
+            try {
+                const routeTokens = Route.tokenizePath(routeInfo.path);
+                const evalResult = this.evalPath(pathAndParams.slice(0, routeTokens.length), routeTokens);
+                if (evalResult.match) {
+                    // path matches
+                    input.params = Route.concatObject(originalInputParams, evalResult.params); // Merge params
+                    // trim route
+                    const remainingParams = pathAndParams.slice(routeTokens.length);
+                    if (routeInfo.route) {
+                        routeInfo.route._run(remainingParams, input, output, callback);
+                    } else if (routeInfo.lazyLoader !== undefined) {
+                        const loaderPath = routeInfo.lazyLoader.path;
+                        routeInfo.lazyLoader.loader().then((routeModule) => {
+                            if (loaderPath && !routeModule.route) throw new Error(`Module "${loaderPath}" does not have exported property 'route'.`);
+                            if (!routeModule.route) throw new Error(`Route Module does not have property 'route'.`);
+                            routeModule.route._run(remainingParams, input, output, callback);
+                        }).catch((error) => {
+                            output.done(error);
+                        });
+                    } else {
+                        callback();
+                    }
                 } else {
                     callback();
                 }
-            } else {
-                callback();
+            } catch (error) {
+                output.done(error);
             }
         }, next);
     }

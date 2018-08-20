@@ -10,7 +10,7 @@
         "clean": "rimraf dist",
         "tslint": "tslint -c tslint.json -t stylish 'src/**/*.ts' --force",
         "pretest": "npm run build",
-        "test": "mocha -r ts-node/register -r source-map-support/register  test/*.ts"
+        "test": "mocha -r ts-node/register -r source-map-support/register test/*.ts"
     },
     "keywords": [
         "CLI"

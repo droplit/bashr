@@ -7,6 +7,7 @@ export interface CommandInput<TContext = any> {
 
 export interface CommandOutput {
     log: (message?: any, ...optionalParams: any[]) => void;
+    done: (error?: Error) => any;
 }
 
 export interface CommandHandler<TContext = any> { (input: CommandInput<TContext>, output: CommandOutput, next?: () => void): void; }
