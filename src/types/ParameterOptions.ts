@@ -4,7 +4,6 @@ export interface ParameterOptions {
     friendlyName?: string;
     validationRegex?: RegExp;
     validator?: (value: any) => boolean;
-    transform?: (value: any) => any;
-    onSpecified? (name: string, value: any, input: CommandInput, output: CommandOutput, next: () => void): void;
-    onUnspecifed? (name: string, input: CommandInput, output: CommandOutput, next: () => void): void;
+    // onSpecified? (name: string, value: any, input: CommandInput, output: CommandOutput, next: () => void): void;
+    // onUnspecified? (name: string, input: CommandInput, output: CommandOutput, next: () => void): void;
 }
