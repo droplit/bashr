@@ -4,6 +4,8 @@ import { ParameterOptions, OptionOptions } from './types';
 import debug from 'debug';
 import { IDebugger } from 'debug';
 
+const yargsParser = require('yargs-parser');
+
 const log = debug('bashr');
 
 export function concatObject(A: any, B: any): Object {
@@ -39,12 +41,12 @@ export class Path<TContext = any> {
         this.log = debug(`bashr:path-${name.replace(' ', '_').replace('*', '⋆')}`);
     }
 
-    public param(name: string, options: ParameterOptions) {
-        this.params[name] = options;
+    public param(name: string, options?: ParameterOptions) {
+        this.params[name] = options || {};
     }
 
-    public option(name: string, options: OptionOptions) {
-        this.options[name] = options;
+    public option(name: string, options?: OptionOptions) {
+        this.options[name] = options || {};
     }
 
     protected tokenizePath(path: string): PathToken[] {
@@ -62,8 +64,9 @@ export class Path<TContext = any> {
 
     protected evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
         const result: EvalResult = { match: false, params: {}, options: {} };
-        // extract options and option params
         this.log(inputArgs, pathTokens);
+        // extract options and option params
+        result.options = concatObject(result.options, this.processOptions(inputArgs));
         // Only validate routes, params, and optional params
         for (let index = 0; index < inputArgs.length; index++) {
             const inputArg = inputArgs[index];
@@ -117,6 +120,33 @@ export class Path<TContext = any> {
             }
             return true;
         } return true;
+    }
+
+    private processOptions(inputArgs: string[]): any {
+        const aliasOpts: any = {};
+        Object.keys(this.options).forEach((key) => {
+            const alias = this.options[key].alias;
+            if (alias && typeof alias === 'string') {
+                aliasOpts[key] = [alias];
+            } else {
+                aliasOpts[key] = alias || [];
+            }
+        });
+        const parserOpts = {
+            alias: aliasOpts
+        };
+        const options = yargsParser(this.extractOptions(inputArgs).join(' '), parserOpts);
+        delete options._;
+        return options;
+    }
+
+    private extractOptions(inputArgs: string[]): string[] {
+        for (let index = 0; index < inputArgs.length; index++) {
+            const arg = inputArgs[index];
+            if (arg.startsWith('-'))
+                return inputArgs.splice(index);
+        }
+        return [];
     }
 
     protected asyncEach<T>(items: T[], operation: (item: T, callback: () => void) => void, done?: () => void) {
