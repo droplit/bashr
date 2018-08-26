@@ -4,7 +4,7 @@ import { CommandHandler, CommandInput, CommandOutput } from './types';
 import { Command } from './Command';
 import { Path } from './Path';
 
-import { concatObject } from './Path';
+import * as utils from './utils';
 
 import debug from 'debug';
 
@@ -97,7 +97,7 @@ export class Route<TContext = any> extends Path {
         const originalInputParams = input.params;
         // run use handlers
         this.log('running use handlers');
-        this.asyncEach(this.useHandlers, (handler, callback) => {
+        utils.asyncEach(this.useHandlers, (handler, callback) => {
             handler(input, output, callback);
         }, () => {
             log(pathAndParams, input);
@@ -114,7 +114,7 @@ export class Route<TContext = any> extends Path {
         // process commands
         this.log('processing commands', util.inspect(this.commands, false, 1));
         if (this.commands.length === 0 && !!next) return next();
-        this.asyncEach(this.commands, (command, nextCommand) => {
+        utils.asyncEach(this.commands, (command, nextCommand) => {
             command.process(pathAndParams, input, output, originalInputParams, nextCommand);
         }, next);
     }
@@ -122,13 +122,13 @@ export class Route<TContext = any> extends Path {
     protected processRoutes(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: { [name: string]: any }, next: () => void) {
         // process routes
         this.log('processing routes', util.inspect(this.routes, false, 1));
-        this.asyncEach(this.routes, (routeInfo, callback) => {
+        utils.asyncEach(this.routes, (routeInfo, callback) => {
             try {
                 const routeTokens = this.tokenizePath(routeInfo.path);
                 const evalResult = this.evalPath(pathAndParams.slice(0, routeTokens.length), routeTokens);
                 if (evalResult.match) {
                     // path matches
-                    input.params = concatObject(originalInputParams, evalResult.params); // Merge params
+                    input.params = utils.concatObject(originalInputParams, evalResult.params); // Merge params
                     // trim route
                     const remainingParams = pathAndParams.slice(routeTokens.length);
                     if (routeInfo.route) {

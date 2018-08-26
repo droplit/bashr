@@ -1,5 +1,5 @@
-import util from 'util';
 import { ParameterOptions, OptionOptions } from './types';
+import * as utils from './utils';
 
 import debug from 'debug';
 import { IDebugger } from 'debug';
@@ -7,10 +7,6 @@ import { IDebugger } from 'debug';
 const yargsParser = require('yargs-parser');
 
 const log = debug('bashr');
-
-export function concatObject(A: any, B: any): Object {
-    return { ...A, ...B };
-}
 
 export enum PathTokenType {
     route = 'route',
@@ -66,7 +62,7 @@ export class Path<TContext = any> {
         const result: EvalResult = { match: false, params: {}, options: {} };
         this.log(inputArgs, pathTokens);
         // extract options and option params
-        result.options = concatObject(result.options, this.processOptions(inputArgs));
+        result.options = utils.concatObject(result.options, this.processOptions(inputArgs));
         // Only validate routes, params, and optional params
         for (let index = 0; index < inputArgs.length; index++) {
             const inputArg = inputArgs[index];
@@ -149,21 +145,4 @@ export class Path<TContext = any> {
         return [];
     }
 
-    protected asyncEach<T>(items: T[], operation: (item: T, callback: () => void) => void, done?: () => void) {
-        if (items.length > 0) {
-            this._asyncEach(items, 0, operation, done ? done : () => { });
-        } else {
-            if (done) done();
-        }
-    }
-
-    protected _asyncEach<T>(items: T[], index: number, operation: (item: T, callback: () => void) => void, done: () => void) {
-        operation(items[index], () => {
-            if (index + 1 < items.length) {
-                this._asyncEach(items, index + 1, operation, done);
-            } else {
-                done();
-            }
-        });
-    }
 }

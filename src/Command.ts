@@ -1,6 +1,6 @@
 import { CommandHandler, CommandInput, CommandOutput } from './types';
 
-import { concatObject } from './Path';
+import * as utils from './utils';
 
 import { Path } from './Path';
 
@@ -26,9 +26,9 @@ export class Command<TContext = any> extends Path {
             if (this.handlers.length === 0) {
                 next();
             } else {
-                this.asyncEach(this.handlers, (handler, callback) => {
-                    input.params = concatObject(originalInputParams, evalResult.params);
-                    input.options = concatObject(originalInputParams, evalResult.options);
+                utils.asyncEach(this.handlers, (handler, callback) => {
+                    input.params = utils.concatObject(originalInputParams, evalResult.params);
+                    input.options = utils.concatObject(originalInputParams, evalResult.options);
                     handler(input, output, callback);
                 }, next);
             }
