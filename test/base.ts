@@ -256,8 +256,8 @@ describe('Params', function () {
             done('"world" should not pass validation for regex /^[0-9]*$/');
         };
         const cli = new bashr.CLI('bashr');
-        cli.param('myParam', { validationRegex: /^[0-9]*$/ }); // Only numbers
-        cli.command('hello :myParam', handler);
+        const command = cli.command('hello :myParam', handler);
+        command.param('myParam', { validationRegex: /^[0-9]*$/ }); // Only numbers
         cli.command('*', defaultHandler);
         cli.run(['', '', 'hello', 'world'])
     });
@@ -269,8 +269,8 @@ describe('Params', function () {
             done();
         };
         const cli = new bashr.CLI('bashr');
-        cli.param('myParam', { validator: (value) => value === 'world' }); // Only allow 'world'
-        cli.command('hello :myParam', handler);
+        const command = cli.command('hello :myParam', handler);
+        command.param('myParam', { validator: (value) => value === 'world' }); // Only allow 'world'
         cli.command('*', defaultHandler);
         cli.run(['', '', 'hello', 'world'])
     });
@@ -282,8 +282,8 @@ describe('Params', function () {
             done('"foo" should not pass custom validator');
         };
         const cli = new bashr.CLI('bashr');
-        cli.param('myParam', { validator: (value) => value === 'world' }); // Only allow 'world'
-        cli.command('hello :myParam', handler);
+        const command = cli.command('hello :myParam', handler);
+        command.param('myParam', { validator: (value) => value === 'world' }); // Only allow 'world'
         cli.command('*', defaultHandler);
         cli.run(['', '', 'hello', 'foo'])
     });

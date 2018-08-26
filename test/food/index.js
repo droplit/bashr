@@ -12,13 +12,13 @@ const eatHandler = (input, output) => {
     process.stdout.write('eating', input);
 };
 
-fruit.route('banana')
-    .command('peel', (input, output) => {
-        process.stdout.write('peeled!');
-    })
-    .command('eat', eatHandler).option('whole', {
-        shorthand: 'w'
-    });
+const banana = fruit.route('banana');
+banana.command('peel', (input, output) => {
+    process.stdout.write('peeled!');
+})
+banana.command('eat', eatHandler).option('whole', {
+    shorthand: 'w'
+});
 
 const other = food.route('other :item').command('eat', eatHandler);
 

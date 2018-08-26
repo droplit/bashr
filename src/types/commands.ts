@@ -1,7 +1,7 @@
 export interface CommandInput<TContext = any> {
     path: string;
     params: {[name: string]: any};
-    options?: {[name: string]: any};
+    options: {[name: string]: any};
     context?: TContext;
 }
 

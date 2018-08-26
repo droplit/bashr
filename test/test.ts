@@ -1,3 +1,4 @@
 import './base';
-import './childProcess'
-import './lazyLoad'
+import './options';
+import './childProcess';
+import './lazyLoad';
