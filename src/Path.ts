@@ -28,21 +28,31 @@ export interface EvalResult {
 export class Path<TContext = any> {
     protected log: IDebugger;
 
-    protected name: string;
-    protected params: { [name: string]: ParameterOptions } = {};
-    protected options: { [name: string]: OptionOptions } = {};
+    protected _name: string;
+    public get name() {
+        return this._name;
+    }
+    protected _params: { [name: string]: ParameterOptions } = {};
+    public get params() {
+        return Object.freeze(this._params);
+    }
+    public get options() {
+        return Object.freeze(this._options);
+    }
+    protected _options: { [name: string]: OptionOptions } = {};
+    public info?: any;
 
     constructor(name: string) {
-        this.name = name;
+        this._name = name;
         this.log = debug(`bashr:path-${name.replace(' ', '_').replace('*', '⋆')}`);
     }
 
     public param(name: string, options?: ParameterOptions) {
-        this.params[name] = options || {};
+        this._params[name] = options || {};
     }
 
     public option(name: string, options?: OptionOptions) {
-        this.options[name] = options || {};
+        this._options[name] = options || {};
     }
 
     protected tokenizePath(path: string): PathToken[] {
@@ -104,7 +114,7 @@ export class Path<TContext = any> {
     }
 
     private validateParam(paramName: string, inputArg: string): boolean {
-        const validation = this.params[paramName];
+        const validation = this._params[paramName];
         if (validation) {
             if (validation.validationRegex) {
                 if (!RegExp(validation.validationRegex).test(inputArg))
@@ -120,8 +130,8 @@ export class Path<TContext = any> {
 
     private processOptions(inputArgs: string[]): any {
         const aliasOpts: any = {};
-        Object.keys(this.options).forEach((key) => {
-            const alias = this.options[key].alias;
+        Object.keys(this._options).forEach((key) => {
+            const alias = this._options[key].alias;
             if (alias && typeof alias === 'string') {
                 aliasOpts[key] = [alias];
             } else {

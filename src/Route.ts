@@ -27,7 +27,19 @@ export interface LazyLoader { (): Promise<RouteModule>; }
 
 export class Route<TContext = any> extends Path {
     private routes: RouteInfo[] = [];
-    private commands: Command[] = [];
+    private _commands: Command[] = [];
+    public get commands() {
+        return Object.freeze(this._commands.map((command) => {
+            const info: any = {
+                name: command.name,
+                params: command.params,
+                options: command.options,
+            };
+            if (command.info) info.info = command.info;
+            return info;
+        }));
+    }
+
     private _default?: Command;
     private useHandlers: CommandHandler<TContext>[] = [];
 
@@ -46,7 +58,7 @@ export class Route<TContext = any> extends Path {
         this.log(`adding command: ${path}`);
         if (path === '*') return this.default(...handler);
         const command = new Command(path, ...handler);
-        this.commands.push(command);
+        this._commands.push(command);
         return command;
     }
 
@@ -113,8 +125,8 @@ export class Route<TContext = any> extends Path {
     protected processCommands(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: { [name: string]: any }, next: () => void) {
         // process commands
         this.log('processing commands', util.inspect(this.commands, false, 1));
-        if (this.commands.length === 0 && !!next) return next();
-        utils.asyncEach(this.commands, (command, nextCommand) => {
+        if (this._commands.length === 0 && !!next) return next();
+        utils.asyncEach(this._commands, (command, nextCommand) => {
             command.process(pathAndParams, input, output, originalInputParams, nextCommand);
         }, next);
     }
