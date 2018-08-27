@@ -59,34 +59,60 @@ export class Path<TContext = any> {
         path = path.trim().replace(/\s{2,}/g, ' '); // Remove duplicate spaces
         return path.split(' ').map((token) => {
             if (token.startsWith('-')) throw new Error('path token cannot start with dash(-)');
-            const isParam = token.startsWith(':');
-            const pathToken: PathToken = {
-                name: isParam ? token.slice(1) : token,
-                type: isParam ? PathTokenType.param : PathTokenType.route
-            };
-            return pathToken;
+            if (!token.startsWith(':'))
+                return {
+                    name: token,
+                    type: PathTokenType.route
+                };
+
+            const param = token.slice(1);
+            if (param.startsWith('[') && param.endsWith(']')) {
+                return {
+                    name: param.slice(1, param.length - 1),
+                    type: PathTokenType.optional
+                };
+            } else {
+                return {
+                    name: param,
+                    type: PathTokenType.param
+                };
+            }
+            // throw new Error(`Cannot parse token "${token}" in "${path}"`);
         });
     }
 
     protected evalPath(inputArgs: string[], pathTokens: PathToken[]): EvalResult {
-        const result: EvalResult = { match: false, params: {}, options: {} };
+        const result: EvalResult = { match: true, params: {}, options: {} };
         this.log(inputArgs, pathTokens);
         // extract options and option params
         result.options = utils.concatObject(result.options, this.processOptions(inputArgs));
         // Only validate routes, params, and optional params
-        for (let index = 0; index < inputArgs.length; index++) {
-            const inputArg = inputArgs[index];
-            if (this.evalPathToken(pathTokens[index], inputArg, result.params) === false)
+        const map = pathTokens.map((token) => {
+            return {
+                pathToken: token,
+                matched: false
+            };
+        });
+        this.log(map);
+        for (let index = 0; index < map.length; index++) {
+            if (map[index].pathToken.name === '*')
                 return result;
-            if (pathTokens[index].name === '*')
-                result.match = true;
+
+            const inputArg = inputArgs[index];
+            if (this.evalPathToken(pathTokens[index], inputArg, result.params) === true)
+                map[index].matched = true;
         }
-        if (inputArgs.length < pathTokens.length)
-            return result; // Too few arguments passed (check after validating args incase of "*" parameter)
+        // Check param inputs after checking for *
+        if (inputArgs.length > pathTokens.length)
+            result.match = false;
 
-        result.match = true;
+        map.forEach((match) => {
+            if (match.matched === false)
+                result.match = false;
+        });
+        this.log(map);
+
         return result;
-
     }
 
     private evalPathToken(pathToken: PathToken, inputArg: string, params: { [name: string]: any }): boolean {
@@ -94,8 +120,8 @@ export class Path<TContext = any> {
             return false;
         if (pathToken.name === '*')
             return true;
-        if (!inputArg && pathToken.type !== PathTokenType.optional)
-            return false;
+        if (!inputArg && pathToken.type === PathTokenType.optional)
+            return true;
 
         switch (pathToken.type) {
             case PathTokenType.route:

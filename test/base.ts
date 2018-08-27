@@ -164,6 +164,31 @@ describe('Params', function () {
         cli.command('hello :param', handler);
         cli.run(['', '', 'hello', 'world'])
     });
+    it('Optional param', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done('Should match "hello :[param]" command');
+        };
+        const handler: bashr.CommandHandler = (input, output) => {
+            expect(input.params['param']).to.equal('world');
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello :[param]', handler);
+        cli.default(defaultHandler);
+        cli.run(['', '', 'hello', 'world'])
+    });
+    it('Omitted optional param', function (done) {
+        const defaultHandler: bashr.CommandHandler = (input, output) => {
+            done('Should match "hello :[param]" command');
+        };
+        const handler: bashr.CommandHandler = (input, output) => {
+            done();
+        };
+        const cli = new bashr.CLI('bashr');
+        cli.command('hello :[param]', handler);
+        cli.default(defaultHandler);
+        cli.run(['', '', 'hello'])
+    });
     it('Single param (Extra space)', function (done) {
         const handler: bashr.CommandHandler = (input, output) => {
             expect(input.params['param']).to.equal('world');
