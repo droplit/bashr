@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import * as bashr from '../';
 
 describe('Help', function () {
-    it('info des', done => {
+    it('Info description', done => {
         const cli = new bashr.CLI('myCLI');
         const route = cli.route('myRoute');
         const handler: bashr.CommandHandler = (input, output) => {
