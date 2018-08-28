@@ -1,9 +1,16 @@
 # Bashr
 Create stellar CLI applications
 
+ [![NPM](https://nodei.co/npm/bashr.png)](https://www.npmjs.com/package/bashr)
+
 ## About
-* Middleware based architecture
-* Lazy-loading modules for fast response time
+
+Bashr is a library for building NodeJS based command line interfaces. 
+
+* Route based design
+* Command parameters and options/flags
+* Middleware architecture
+* Lazy-load route modules for fast response time
 
 ## Example
 
