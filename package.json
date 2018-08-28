@@ -10,12 +10,17 @@
         "clean": "rimraf dist",
         "tslint": "tslint -c tslint.json -t stylish 'src/**/*.ts' --force",
         "pretest": "npm run build",
-        "test": "mocha -r ts-node/register -r source-map-support/register test/test.ts"
+        "test": "mocha -r ts-node/register -r source-map-support/register test/test.ts",
+        "prepack": "npm run build"
     },
     "keywords": [
-        "CLI"
+        "CLI", "command line"
     ],
-    "author": "Droplit, Inc.",
+    "authors": [
+        "Bryan Jenks <bryan@droplit.io>",
+        "Chris Woodle <chris@droplit.io>",
+        "Sabbir Baser <sabbir@droplit.io>"
+],
     "license": "ISC",
     "devDependencies": {
         "@types/chai": "^4.1.4",
