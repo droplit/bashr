@@ -1,6 +1,6 @@
 {
     "name": "bashr",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Create stellar CLI applications",
     "types": "dist/library.d.ts",
     "main": "dist/library.js",
@@ -14,7 +14,7 @@
         "prepack": "npm run build"
     },
     "keywords": [
-        "CLI", "command line"
+        "CLI", "command line", "shell", "bash", "terminal", "console"
     ],
     "authors": [
         "Bryan Jenks <bryan@droplit.io>",
