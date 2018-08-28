@@ -2,20 +2,6 @@
 
 Components to a Bashr cli command
 
-* Path
-    * Hardcoded string
-    * Params    
-        * Optional
-* Options (Flags)
-    * Flag name prefixed with `--`
-        * camelCase, PascalCase, kebab-case, snake_case
-    * Alias prefixed with `-`
-        * Always converted to lowercase
-    * Optional
-    * Optional value
-
-
-
 ## Theory of Operation
 
 Create command line interface applications using an express-like router architecture to map commands.
@@ -97,16 +83,6 @@ cli('device :id call :selector [value...]'); // call command with optional any n
 
 `droplit device :deviceId get :selector --refresh=true`
 
-
-Options input
-
-```shell
---param value
--p value
---paramName value
---param-name value
--pn value
-```
 
 droplit
 
