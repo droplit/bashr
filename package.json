@@ -14,13 +14,18 @@
         "prepack": "npm run build"
     },
     "keywords": [
-        "CLI", "command line", "shell", "bash", "terminal", "console"
+        "CLI",
+        "command line",
+        "shell",
+        "bash",
+        "terminal",
+        "console"
     ],
     "authors": [
         "Bryan Jenks <bryan@droplit.io>",
         "Chris Woodle <chris@droplit.io>",
         "Sabbir Baser <sabbir@droplit.io>"
-],
+    ],
     "license": "ISC",
     "devDependencies": {
         "@types/chai": "^4.1.4",
