@@ -1,6 +1,6 @@
 {
     "name": "bashr",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Create stellar CLI applications",
     "types": "dist/library.d.ts",
     "main": "dist/library.js",
