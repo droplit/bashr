@@ -26,6 +26,7 @@ interface RouteModule {
 export interface LazyLoader { (): Promise<RouteModule>; }
 
 export class Route<TContext = any> extends Path {
+    private parent?: Route;
     private routes: RouteInfo[] = [];
     private _commands: Command[] = [];
     public get commands() {
@@ -105,7 +106,8 @@ export class Route<TContext = any> extends Path {
         }
     }
 
-    protected _run(pathAndParams: string[], input: CommandInput, output: CommandOutput, next: () => void) {
+    protected _run(parent: Route, pathAndParams: string[], input: CommandInput, output: CommandOutput, next: () => void) {
+        this.parent = parent;
         const originalInputParams = input.params;
         // run use handlers
         this.log('running use handlers');
@@ -144,13 +146,13 @@ export class Route<TContext = any> extends Path {
                     // trim route
                     const remainingParams = pathAndParams.slice(routeTokens.length);
                     if (routeInfo.route) {
-                        routeInfo.route._run(remainingParams, input, output, callback);
+                        routeInfo.route._run(this, remainingParams, input, output, callback);
                     } else if (routeInfo.lazyLoader !== undefined) {
                         const loaderPath = routeInfo.lazyLoader.path;
                         routeInfo.lazyLoader.loader().then((routeModule) => {
                             if (loaderPath && !routeModule.route) throw new Error(`Module "${loaderPath}" does not have exported property 'route'.`);
                             if (!routeModule.route) throw new Error(`Route Module does not have property 'route'.`);
-                            routeModule.route._run(remainingParams, input, output, callback);
+                            routeModule.route._run(this, remainingParams, input, output, callback);
                         }).catch((error) => {
                             output.done(error);
                         });
