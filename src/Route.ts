@@ -1,5 +1,5 @@
 import util from 'util';
-import { CommandHandler, CommandInput, CommandOutput } from './types';
+import { CommandHandler, CommandInput, CommandOutput, ParameterOptions, OptionOptions } from './types';
 
 import { Command } from './Command';
 import { Path } from './Path';
@@ -26,12 +26,20 @@ interface RouteModule {
 export interface LazyLoader { (): Promise<RouteModule>; }
 
 export class Route<TContext = any> extends Path {
-    private parent?: Route;
-    private routes: RouteInfo[] = [];
+    private _parent?: Route;
+    private _routes: RouteInfo[] = [];
     private _commands: Command[] = [];
+    public get parent() {
+        return Object.freeze(this._parent);
+    }
     public get commands() {
         return Object.freeze(this._commands.map((command) => {
-            const info: any = {
+            const info: {
+                name: string,
+                params: { [name: string]: ParameterOptions },
+                options: { [name: string]: OptionOptions },
+                info?: any
+            } = {
                 name: command.name,
                 params: command.params,
                 options: command.options,
@@ -39,6 +47,22 @@ export class Route<TContext = any> extends Path {
             if (command.info) info.info = command.info;
             return info;
         }));
+    }
+
+    public get routes() {
+        const routeInfoPromises = this._routes.map((routeInfo) => {
+            if (routeInfo.lazyLoader !== undefined) {
+                return routeInfo.lazyLoader.loader().then((routeModule) => {
+                    return Promise.resolve(routeModule.route);
+                });
+            } else {
+                return Promise.resolve(routeInfo.route);
+            }
+        });
+
+        return Promise.all(routeInfoPromises).then((routes) => {
+            return Promise.resolve(Object.freeze(routes));
+        });
     }
 
     private _default?: Command;
@@ -72,7 +96,7 @@ export class Route<TContext = any> extends Path {
     public route(path: string, route?: Route): Route {
         route = route || new Route(path);
         this.log(`adding route: ${path}`);
-        this.routes.push({
+        this._routes.push({
             path,
             route
         });
@@ -85,7 +109,7 @@ export class Route<TContext = any> extends Path {
         this.log(`adding lazyRoute: ${path}`);
         if (loaderOrPath instanceof Function) {
             const loader = loaderOrPath;
-            this.routes.push({
+            this._routes.push({
                 path,
                 lazyLoader: {
                     loader
@@ -94,7 +118,7 @@ export class Route<TContext = any> extends Path {
         } else if (typeof (loaderOrPath) === 'string') {
             const loader = () => import(loaderOrPath);
             const loaderPath = loaderOrPath;
-            this.routes.push({
+            this._routes.push({
                 path,
                 lazyLoader: {
                     loader,
@@ -107,7 +131,7 @@ export class Route<TContext = any> extends Path {
     }
 
     protected _run(parent: Route, pathAndParams: string[], input: CommandInput, output: CommandOutput, next: () => void) {
-        this.parent = parent;
+        this._parent = parent;
         const originalInputParams = input.params;
         // run use handlers
         this.log('running use handlers');
@@ -135,8 +159,8 @@ export class Route<TContext = any> extends Path {
 
     protected processRoutes(pathAndParams: string[], input: CommandInput, output: CommandOutput, originalInputParams: { [name: string]: any }, next: () => void) {
         // process routes
-        this.log('processing routes', util.inspect(this.routes, false, 1));
-        utils.asyncEach(this.routes, (routeInfo, callback) => {
+        this.log('processing routes', util.inspect(this._routes, false, 1));
+        utils.asyncEach(this._routes, (routeInfo, callback) => {
             try {
                 const routeTokens = this.tokenizePath(routeInfo.path);
                 const evalResult = this.evalPath(pathAndParams.slice(0, routeTokens.length), routeTokens);

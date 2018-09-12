@@ -27,6 +27,7 @@ export class Command<TContext = any> extends Path {
                 next();
             } else {
                 utils.asyncEach(this.handlers, (handler, callback) => {
+                    input.path = pathAndParams[0];
                     input.params = utils.concatObject(originalInputParams, evalResult.params);
                     input.options = utils.concatObject(originalInputParams, evalResult.options);
                     handler(input, output, callback);
