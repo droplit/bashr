@@ -9,7 +9,7 @@ describe('Options', function () {
             done();
         };
         const cli = new bashr.CLI('myCLI');
-        const command = cli.command('test', handler)
+        const command = cli.command('test', handler);
         command.option('test');
         cli.run(['', '', 'test', '--test']);
     });
@@ -20,7 +20,7 @@ describe('Options', function () {
             done();
         };
         const cli = new bashr.CLI('myCLI');
-        const command = cli.command('test', handler)
+        const command = cli.command('test', handler);
         command.option('test', { alias: 't' });
         cli.run(['', '', 'test', '-t']);
     });
@@ -31,7 +31,7 @@ describe('Options', function () {
             done();
         };
         const cli = new bashr.CLI('myCLI');
-        const command = cli.command('test', handler)
+        const command = cli.command('test', handler);
         command.option('test', { alias: ['t'] });
         cli.run(['', '', 'test', '-t']);
     });
@@ -42,7 +42,7 @@ describe('Options', function () {
             done();
         };
         const cli = new bashr.CLI('myCLI');
-        const command = cli.command('test', handler)
+        const command = cli.command('test', handler);
         command.option('test');
         cli.run(['', '', 'test', '--test', 'hello']);
     });
