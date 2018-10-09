@@ -46,6 +46,6 @@ export class CLI<TContext = any> extends Route {
         // organize args
         const pathAndParams: string[] = argv.slice(2); // remove node/path and invocation
         const outputLog = this.logger ? this.logger.log : console.log;
-        this._run(this, pathAndParams, { path: '', params: {}, options: {} }, { log: outputLog, done }, () => { });
+        this._run(undefined, pathAndParams, { path: '', params: {}, options: {} }, { log: outputLog, done }, () => { });
     }
 }

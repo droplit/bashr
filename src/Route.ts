@@ -130,7 +130,7 @@ export class Route<TContext = any> extends Path {
         }
     }
 
-    protected _run(parent: Route, pathAndParams: string[], input: CommandInput, output: CommandOutput, next: () => void) {
+    protected _run(parent: Route | undefined, pathAndParams: string[], input: CommandInput, output: CommandOutput, next: () => void) {
         this._parent = parent;
         const originalInputParams = input.params;
         // run use handlers
