@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://github.com/droplit/worqr">
+    <img height="186" width="500" src="https://raw.githubusercontent.com/droplit/content/master/bashr_logo.gif">
+  </a>
+</p>
+
 # Bashr
 Create stellar CLI applications
 
