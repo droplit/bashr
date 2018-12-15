@@ -15,8 +15,8 @@ Bashr is a library for building NodeJS based command line interfaces.
 
 * Route based design
 * Command parameters and options/flags
-* Middleware architecture
-* Lazy-load route modules for fast response time
+* Supports command processing middleware
+* Lazy-load route modules for fast startup
 
 ## Example
 
